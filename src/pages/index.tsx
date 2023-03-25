@@ -6,6 +6,8 @@ import { VStack, Heading, Box, LinkOverlay, LinkBox } from "@chakra-ui/layout";
 import { Text, Button } from "@chakra-ui/react";
 // import { ethers } from "ethers";
 import { useEffect, useState } from "react";
+import ReadERC20 from "components/ReadERC20";
+import TransferERC20 from "components/TransferERC20";
 
 const ethers = require("ethers");
 
@@ -17,22 +19,57 @@ const Home: NextPage = () => {
   const [chainId, setChainId] = useState<number | undefined>();
   const [chainName, setChainName] = useState<string | undefined>();
 
+  function handleAccountChanged(accounts: any) {
+    if (accounts.length === 0) {
+      console.log("please connect to MetaMask");
+    } else if (accounts[0] !== currentAccount) {
+      setCurrentAccount(accounts[0]);
+    }
+  }
+
+  function handleChainChanged(_chainId: any) {
+    if (_chainId === chainId) {
+      console.log("connect to different chain");
+    } else {
+      setChainId(_chainId);
+    }
+  }
+
   useEffect(() => {
     if (!currentAccount || !ethers.utils.isAddress(currentAccount)) return;
 
     if (!window.ethereum) return;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
 
-    const provider = new ethers.provide.Web3Provider(window.ethereum);
+    window.ethereum
+      .request({ method: "eth_accounts" })
+      .then(handleAccountChanged)
+      .catch((err: any) => console.error(err));
+
+    window.ethereum.on("accountsChanged", handleAccountChanged);
+
+    window.ethereum.request({ method: "eth_chainId" });
+    // Do something with the chainId
+    window.ethereum.on("chainChanged", handleChainChanged);
 
     provider.getBalance(currentAccount).then((result: number) => {
-      setBalance(ethers.utils.formatEthers(result));
+      setBalance(ethers.utils.formatEther(result));
     });
 
     provider.getNetwork().then((result: any) => {
       setChainId(result.chainId);
       setChainName(result.name);
     });
-  }, [currentAccount]);
+  }, [currentAccount, chainId]);
+
+  // useEffect(() => {
+  //   window.ethereum
+  //     .request({ method: "eth_chainId" })
+  //     .then(handleChainChanged)
+  //     .catch((err: any) => console.log(err));
+
+  //   window.ethereum.on("chainChanged", handleChainChanged);
+  // }, []);
 
   const onClickConnect = () => {
     if (!window.ethereum) {
@@ -86,6 +123,14 @@ const Home: NextPage = () => {
             <Text>
               Chain Info: ChainId {chainId} name {chainName}
             </Text>
+            <ReadERC20
+              addressContract="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+              currentAccount={currentAccount}
+            />
+            <TransferERC20
+              addressContract="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+              currentAccount={currentAccount}
+            />
           </Box>
         ) : (
           <></>
